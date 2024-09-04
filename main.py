@@ -1,6 +1,8 @@
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
+import pydeck as pdk
 
 coords = np.array([[40.684770, -111.871110],
                    [40.745930, -111.938160],
@@ -29,3 +31,45 @@ coords = np.array([[40.684770, -111.871110],
                    [40.653966, -111.865307],
                    [40.749703, -111.873752],
                    [40.635141, -111.864093]])
+
+df = pd.DataFrame(
+    {
+        "lat": coords[:, 0],
+        "lon": coords[:, 1],
+        "col3": 20,
+        "col4": "#f00",
+    }
+)
+
+st.pydeck_chart(
+    pdk.Deck(
+        map_style=None,
+        initial_view_state=pdk.ViewState(
+            latitude=40.68,
+            longitude=-111.90,
+            zoom=11,
+            pitch=0,
+        ),
+        layers=[
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=df,
+                get_position="[lon, lat]",
+                get_color="[200, 30, 0, 160]",
+                get_radius=100,
+            ),
+            pdk.Layer(
+            "LineLayer",
+                df,
+                get_source_position="[lon, lat]",
+                target_position="[lon, lat]",
+                get_color="[200, 30, 0, 160]",
+                get_width=10,
+                highlight_color=[255, 255, 0],
+                picking_radius=10,
+                auto_highlight=True,
+                pickable=True,
+            ),
+        ],
+    )
+)
