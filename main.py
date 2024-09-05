@@ -64,24 +64,30 @@ def nearest_neighbor(index, visited):
 
 
 def calculate_route():
-    lines = pd.DataFrame(columns=["start", "end"])
+    lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon"])
     visited = set()
     current_index = 0  # Starting from the first coordinate
+    i = 0
 
     while len(visited) < len(coords):
         if current_index in visited:
             break
+        i += 1
         visited.add(current_index)
         # Find the nearest neighbor for the current coordinate
         next_index, distance = nearest_neighbor(current_index, visited)
+        if next_index is None:
+            break
         if next_index in visited:
             # Find the next nearest neighbor that has not been visited
             while next_index in visited:
                 next_index, distance = nearest_neighbor(next_index, visited)
         # Append the route
         lines.loc[len(lines)] = {
-            'start': coords[current_index],
-            'end': coords[next_index]
+            'start_lat': coords[current_index][0],
+            'start_lon': coords[current_index][1],
+            'end_lat': coords[next_index][0],
+            'end_lon': coords[next_index][1]
         }
         current_index = next_index  # Move to the next coordinate
 
@@ -113,8 +119,8 @@ st.pydeck_chart(
             pdk.Layer(
             "LineLayer",
                 route_df,
-                get_source_position="[start[:][0], start[:][1]]",
-                target_position="[end[:][0], end[:][1]]",
+                get_source_position="[start_lon, start_lat]",
+                get_target_position="[end_lon, end_lat]",
                 get_color="[200, 30, 0, 160]",
                 get_width=10,
                 highlight_color=[255, 255, 0],
