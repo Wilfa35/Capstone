@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import streamlit as st
 import pydeck as pdk
+from scipy.spatial import distance_matrix
+
 
 coords = np.array([[40.684770, -111.871110],
                    [40.745930, -111.938160],
@@ -41,6 +43,56 @@ df = pd.DataFrame(
     }
 )
 
+dMatrix = pd.DataFrame(distance_matrix(coords, coords))
+
+
+def nearest_neighbor(index, visited):
+    # Get the distances for the current index
+    distances = dMatrix.iloc[index].values
+    # Set the distance to self to infinity
+    distances[index] = float('inf')
+    # Exclude already visited nodes by setting their distances to infinity
+    for v in visited:
+        distances[v] = float('inf')
+    # Get the index of the nearest neighbor
+    nearest_index = np.argmin(distances)
+    nearest_distance = distances[nearest_index]
+    if nearest_distance == float('inf'):
+        # If all distances are inf, return None
+        return None, float('inf')
+    return nearest_index, nearest_distance
+
+
+def calculate_route():
+    lines = pd.DataFrame(columns=["start", "end"])
+    visited = set()
+    current_index = 0  # Starting from the first coordinate
+
+    while len(visited) < len(coords):
+        if current_index in visited:
+            break
+        visited.add(current_index)
+        # Find the nearest neighbor for the current coordinate
+        next_index, distance = nearest_neighbor(current_index, visited)
+        if next_index in visited:
+            # Find the next nearest neighbor that has not been visited
+            while next_index in visited:
+                next_index, distance = nearest_neighbor(next_index, visited)
+        # Append the route
+        lines.loc[len(lines)] = {
+            'start': coords[current_index],
+            'end': coords[next_index]
+        }
+        current_index = next_index  # Move to the next coordinate
+
+    return lines
+
+
+print(dMatrix.to_string())
+
+route_df = calculate_route()
+print(route_df)
+
 st.pydeck_chart(
     pdk.Deck(
         map_style=None,
@@ -60,9 +112,9 @@ st.pydeck_chart(
             ),
             pdk.Layer(
             "LineLayer",
-                df,
-                get_source_position="[lon, lat]",
-                target_position="[lon, lat]",
+                route_df,
+                get_source_position="[start[:][0], start[:][1]]",
+                target_position="[end[:][0], end[:][1]]",
                 get_color="[200, 30, 0, 160]",
                 get_width=10,
                 highlight_color=[255, 255, 0],
