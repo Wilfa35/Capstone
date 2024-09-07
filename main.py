@@ -108,6 +108,8 @@ def nearest_neighbor(index, visited):
         return None, float('inf')
     return nearest_index, nearest_distance
 
+def nearest_insertion():
+
 
 def calculate_route(number_of_iterations, number_of_trucks, capacity):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color"])
