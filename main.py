@@ -10,8 +10,8 @@ from scipy.spatial import distance_matrix
 # WRITE A BLURB explaining the dataset, scenario, and how the dataset can be visualized
 # ADD INTERACTIVE ELEMENTS such that the user can see the difference between the 2-opt, greedy, nearest insertion, ect.
 # https://stemlounge.com/animated-algorithms-for-the-traveling-salesman-problem/
-# ALLOW THE USER to RANDOMIZE the DATASET
-# ALLOW THE USER to change the NUMBER OF TRUCKS and PACKAGES
+# ALLOW THE USER to RANDOMIZE the DATASET -- DONE
+# ALLOW THE USER to change the NUMBER OF TRUCKS and PACKAGES -- DONE
 # (POTENTIALLY) USE AN ANIMATION as opposed to THE SLIDER
 
 #                      Latitude    Longitude   Number of Packages
@@ -43,17 +43,51 @@ locations = np.array([[40.684770, -111.871110, 1],
                       [40.749703, -111.873752, 2],
                       [40.635141, -111.864093, 2]])
 
+
+def generate_random_locations(num_rows, original_array):
+    # Extract the minimum and maximum latitude and longitude from the original array
+    min_latitude, max_latitude = original_array[:, 0].min(), original_array[:, 0].max()
+    min_longitude, max_longitude = original_array[:, 1].min(), original_array[:, 1].max()
+
+    # Determine the range of the number of packages
+    min_packages, max_packages = original_array[:, 2].min(), original_array[:, 2].max()
+
+    # Generate random latitudes and longitudes within the bounds
+    random_latitudes = np.random.uniform(min_latitude, max_latitude, num_rows)
+    random_longitudes = np.random.uniform(min_longitude, max_longitude, num_rows)
+
+    # Generate random number of packages within the bounds
+    random_packages = np.random.randint(min_packages, max_packages + 1, num_rows)
+
+    # Combine into a single array
+    random_locations = np.column_stack((random_latitudes, random_longitudes, random_packages))
+
+    print(random_locations)
+    return random_locations
+
+
+if 'random_locations' not in st.session_state:
+    st.session_state.random_locations = locations
+
+# Button to randomize dataset
+if st.button("Randomize Dataset"):
+    st.session_state.random_locations = generate_random_locations(20, locations)
+
+# Access the randomized locations from session state
+random_locations = st.session_state.random_locations
+
+# Create a DataFrame for display
 df = pd.DataFrame(
     {
-        "lat": locations[:, 0],
-        "lon": locations[:, 1],
-        "num_packages": locations[:, 2],
-        "radius": 100 + (locations[:, 2] * 25),
+        "lat": random_locations[:, 0],
+        "lon": random_locations[:, 1],
+        "num_packages": random_locations[:, 2],
+        "radius": 100 + (random_locations[:, 2] * 25),
         "col4": "#f00",
     }
 )
 
-coordinates = locations[:, :2]
+coordinates = random_locations[:, :2]
 
 dMatrix = pd.DataFrame(distance_matrix(coordinates, coordinates))
 
@@ -84,7 +118,7 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity):
         current_index = 0  # Starting from the first coordinate
         i = 0
         while len(visited) < len(coordinates) and i < number_of_iterations and packages < capacity:
-            if current_index in visited and current_index is not 0:
+            if current_index in visited and current_index != 0:
                 break
             i += 1
             visited.add(current_index)
@@ -108,9 +142,6 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity):
             current_index = next_index  # Move to the next coordinate
 
     return lines
-
-
-print(dMatrix.to_string())
 
 n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=len(coordinates) - 1, value=0,
                          help="How many iterations of your current algorithm")
