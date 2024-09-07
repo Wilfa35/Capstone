@@ -13,6 +13,7 @@ from scipy.spatial import distance_matrix
 # ALLOW THE USER to RANDOMIZE the DATASET -- DONE
 # ALLOW THE USER to change the NUMBER OF TRUCKS and PACKAGES -- DONE
 # (POTENTIALLY) USE AN ANIMATION as opposed to THE SLIDER
+# WRITE OR INCORPORATE IT THIS INTO ROUTING FUNCTION -- WE NEED TO MEASURE THE DISTANCE OF THE ROUTE (IMPORTANT)
 
 #                      Latitude    Longitude   Number of Packages
 locations = np.array([[40.684770, -111.871110, 1],
@@ -109,15 +110,17 @@ def nearest_neighbor(index, visited):
     return nearest_index, nearest_distance
 
 def nearest_insertion():
+    return
 
-
+# Add an "algorithm" field to calculate route that decides which algorithm to run based on user selection
+# Probably a switch case statement for running the algorithms based on user selection
 def calculate_route(number_of_iterations, number_of_trucks, capacity):
-    lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color"])
+    lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color", "length"])
     visited = set()
 
     for truck in range(number_of_trucks):
         packages = 0
-        current_index = 0  # Starting from the first coordinate
+        current_index = 0  # Starting from the first coordinate -- the "hub"
         i = 0
         while len(visited) < len(coordinates) and i < number_of_iterations and packages < capacity:
             if current_index in visited and current_index != 0:
@@ -139,7 +142,8 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity):
                 'start_lon': coordinates[current_index][1],
                 'end_lat': coordinates[next_index][0],
                 'end_lon': coordinates[next_index][1],
-                'color': [250 - (truck * 50), 50 * truck, 100, 160]
+                'color': [250 - (truck * 50), 50 * truck, 100, 160],
+                'length': distance
             }
             current_index = next_index  # Move to the next coordinate
 
@@ -151,6 +155,9 @@ n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help
 truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
 
 route_df = calculate_route(n_iterations, n_trucks, truck_capacity)
+
+# ADD constants. The 69 is latitude to miles. 1.30 is the difference between the shortest route to a straight line.
+st.write(route_df['length'].sum() * 69 * 1.30)
 
 st.pydeck_chart(
     pdk.Deck(
