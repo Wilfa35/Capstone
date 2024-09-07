@@ -5,45 +5,57 @@ import streamlit as st
 import pydeck as pdk
 from scipy.spatial import distance_matrix
 
+# TO DO:
+# Add the PACKAGES and TRCUKS feature -- HALF DONE
+# WRITE A BLURB explaining the dataset, scenario, and how the dataset can be visualized
+# ADD INTERACTIVE ELEMENTS such that the user can see the difference between the 2-opt, greedy, nearest insertion, ect.
+# https://stemlounge.com/animated-algorithms-for-the-traveling-salesman-problem/
+# ALLOW THE USER to RANDOMIZE the DATASET
+# ALLOW THE USER to change the NUMBER OF TRUCKS and PACKAGES
+# (POTENTIALLY) USE AN ANIMATION as opposed to THE SLIDER
 
-coords = np.array([[40.684770, -111.871110],
-                   [40.745930, -111.938160],
-                   [40.725330, -111.852966],
-                   [40.664470, -111.933160],
-                   [40.692458, -111.895690],
-                   [40.716805, -111.895319],
-                   [40.758513, -111.947929],
-                   [40.712312, -111.954971],
-                   [40.774841, -111.885948],
-                   [40.715443, -111.877740],
-                   [40.654498, -111.957709],
-                   [40.710026, -111.890679],
-                   [40.775667, -111.888137],
-                   [40.704667, -111.937086],
-                   [40.702483, -111.922838],
-                   [40.697871, -111.916820],
-                   [40.703364, -111.909673],
-                   [40.691036, -111.891020],
-                   [40.708705, -111.901988],
-                   [40.760331, -111.888332],
-                   [40.676338, -111.854214],
-                   [40.671442, -111.824646],
-                   [40.662317, -111.887077],
-                   [40.659050, -111.958002],
-                   [40.653966, -111.865307],
-                   [40.749703, -111.873752],
-                   [40.635141, -111.864093]])
+#                      Latitude    Longitude   Number of Packages
+locations = np.array([[40.684770, -111.871110, 1],
+                      [40.745930, -111.938160, 2],
+                      [40.725330, -111.852966, 3],
+                      [40.664470, -111.933160, 1],
+                      [40.692458, -111.895690, 2],
+                      [40.716805, -111.895319, 4],
+                      [40.758513, -111.947929, 2],
+                      [40.712312, -111.954971, 1],
+                      [40.774841, -111.885948, 2],
+                      [40.715443, -111.877740, 1],
+                      [40.654498, -111.957709, 3],
+                      [40.710026, -111.890679, 4],
+                      [40.775667, -111.888137, 1],
+                      [40.704667, -111.937086, 1],
+                      [40.702483, -111.922838, 5],
+                      [40.697871, -111.916820, 1],
+                      [40.703364, -111.909673, 1],
+                      [40.691036, -111.891020, 3],
+                      [40.708705, -111.901988, 2],
+                      [40.760331, -111.888332, 3],
+                      [40.676338, -111.854214, 1],
+                      [40.671442, -111.824646, 5],
+                      [40.662317, -111.887077, 5],
+                      [40.659050, -111.958002, 2],
+                      [40.653966, -111.865307, 1],
+                      [40.749703, -111.873752, 2],
+                      [40.635141, -111.864093, 2]])
 
 df = pd.DataFrame(
     {
-        "lat": coords[:, 0],
-        "lon": coords[:, 1],
-        "col3": 20,
+        "lat": locations[:, 0],
+        "lon": locations[:, 1],
+        "num_packages": locations[:, 2],
+        "radius": 100 + (locations[:, 2] * 25),
         "col4": "#f00",
     }
 )
 
-dMatrix = pd.DataFrame(distance_matrix(coords, coords))
+coordinates = locations[:, :2]
+
+dMatrix = pd.DataFrame(distance_matrix(coordinates, coordinates))
 
 
 def nearest_neighbor(index, visited):
@@ -63,13 +75,13 @@ def nearest_neighbor(index, visited):
     return nearest_index, nearest_distance
 
 
-def calculate_route():
+def calculate_route(number_of_iterations):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon"])
     visited = set()
     current_index = 0  # Starting from the first coordinate
     i = 0
 
-    while len(visited) < len(coords):
+    while len(visited) < len(coordinates) and i < number_of_iterations:
         if current_index in visited:
             break
         i += 1
@@ -84,10 +96,10 @@ def calculate_route():
                 next_index, distance = nearest_neighbor(next_index, visited)
         # Append the route
         lines.loc[len(lines)] = {
-            'start_lat': coords[current_index][0],
-            'start_lon': coords[current_index][1],
-            'end_lat': coords[next_index][0],
-            'end_lon': coords[next_index][1]
+            'start_lat': coordinates[current_index][0],
+            'start_lon': coordinates[current_index][1],
+            'end_lat': coordinates[next_index][0],
+            'end_lon': coordinates[next_index][1]
         }
         current_index = next_index  # Move to the next coordinate
 
@@ -96,16 +108,18 @@ def calculate_route():
 
 print(dMatrix.to_string())
 
-route_df = calculate_route()
-print(route_df)
+n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=len(coordinates) - 1, value=0,
+                         help="How many iterations of your current algorithm")
+
+route_df = calculate_route(n_iterations)
 
 st.pydeck_chart(
     pdk.Deck(
         map_style=None,
         initial_view_state=pdk.ViewState(
-            latitude=40.68,
+            latitude=40.705,
             longitude=-111.90,
-            zoom=11,
+            zoom=10.75,
             pitch=0,
         ),
         layers=[
@@ -114,19 +128,18 @@ st.pydeck_chart(
                 data=df,
                 get_position="[lon, lat]",
                 get_color="[200, 30, 0, 160]",
-                get_radius=100,
+                get_radius="radius",
             ),
             pdk.Layer(
-            "LineLayer",
+                "LineLayer",
                 route_df,
                 get_source_position="[start_lon, start_lat]",
                 get_target_position="[end_lon, end_lat]",
                 get_color="[200, 30, 0, 160]",
-                get_width=10,
+                get_width=5,
                 highlight_color=[255, 255, 0],
-                picking_radius=10,
                 auto_highlight=True,
-                pickable=True,
+                pickable=False,
             ),
         ],
     )
