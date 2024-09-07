@@ -157,6 +157,7 @@ truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_valu
 route_df = calculate_route(n_iterations, n_trucks, truck_capacity)
 
 # ADD constants. The 69 is latitude to miles. 1.30 is the difference between the shortest route to a straight line.
+# Include this source in blurb: https://blog.cdxtech.com/post/straight-line-distance-as-an-estimate-for-driving-routes
 st.write(route_df['length'].sum() * 69 * 1.30)
 
 st.pydeck_chart(
