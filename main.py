@@ -6,7 +6,7 @@ import pydeck as pdk
 from scipy.spatial import distance_matrix
 
 # TO DO:
-# Add the PACKAGES and TRCUKS feature -- HALF DONE
+# Add the PACKAGES and TRUCKS feature -- DONE
 # WRITE A BLURB explaining the dataset, scenario, and how the dataset can be visualized
 # ADD INTERACTIVE ELEMENTS such that the user can see the difference between the 2-opt, greedy, nearest insertion, ect.
 # https://stemlounge.com/animated-algorithms-for-the-traveling-salesman-problem/
@@ -75,33 +75,37 @@ def nearest_neighbor(index, visited):
     return nearest_index, nearest_distance
 
 
-def calculate_route(number_of_iterations):
-    lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon"])
+def calculate_route(number_of_iterations, number_of_trucks, capacity):
+    lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color"])
     visited = set()
-    current_index = 0  # Starting from the first coordinate
-    i = 0
 
-    while len(visited) < len(coordinates) and i < number_of_iterations:
-        if current_index in visited:
-            break
-        i += 1
-        visited.add(current_index)
-        # Find the nearest neighbor for the current coordinate
-        next_index, distance = nearest_neighbor(current_index, visited)
-        if next_index is None:
-            break
-        if next_index in visited:
-            # Find the next nearest neighbor that has not been visited
-            while next_index in visited:
-                next_index, distance = nearest_neighbor(next_index, visited)
-        # Append the route
-        lines.loc[len(lines)] = {
-            'start_lat': coordinates[current_index][0],
-            'start_lon': coordinates[current_index][1],
-            'end_lat': coordinates[next_index][0],
-            'end_lon': coordinates[next_index][1]
-        }
-        current_index = next_index  # Move to the next coordinate
+    for truck in range(number_of_trucks):
+        packages = 0
+        current_index = 0  # Starting from the first coordinate
+        i = 0
+        while len(visited) < len(coordinates) and i < number_of_iterations and packages < capacity:
+            if current_index in visited and current_index is not 0:
+                break
+            i += 1
+            visited.add(current_index)
+            packages += locations[current_index, 2]
+            # Find the nearest neighbor for the current coordinate
+            next_index, distance = nearest_neighbor(current_index, visited)
+            if next_index is None:
+                break
+            if next_index in visited:
+                # Find the next nearest neighbor that has not been visited
+                while next_index in visited:
+                    next_index, distance = nearest_neighbor(next_index, visited)
+            # Append the route
+            lines.loc[len(lines)] = {
+                'start_lat': coordinates[current_index][0],
+                'start_lon': coordinates[current_index][1],
+                'end_lat': coordinates[next_index][0],
+                'end_lon': coordinates[next_index][1],
+                'color': [250 - (truck * 50), 50 * truck, 100, 160]
+            }
+            current_index = next_index  # Move to the next coordinate
 
     return lines
 
@@ -110,8 +114,10 @@ print(dMatrix.to_string())
 
 n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=len(coordinates) - 1, value=0,
                          help="How many iterations of your current algorithm")
+n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
+truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
 
-route_df = calculate_route(n_iterations)
+route_df = calculate_route(n_iterations, n_trucks, truck_capacity)
 
 st.pydeck_chart(
     pdk.Deck(
@@ -135,7 +141,7 @@ st.pydeck_chart(
                 route_df,
                 get_source_position="[start_lon, start_lat]",
                 get_target_position="[end_lon, end_lat]",
-                get_color="[200, 30, 0, 160]",
+                get_color="color",
                 get_width=5,
                 highlight_color=[255, 255, 0],
                 auto_highlight=True,
