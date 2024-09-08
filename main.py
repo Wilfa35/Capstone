@@ -10,6 +10,11 @@ from scipy.spatial import distance_matrix
 # WRITE A BLURB explaining the dataset, scenario, and how the dataset can be visualized
 # ADD INTERACTIVE ELEMENTS such that the user can see the difference between the 2-opt, greedy, nearest insertion, ect.
 # https://stemlounge.com/animated-algorithms-for-the-traveling-salesman-problem/
+    # NEAREST INSERTION -- DONE
+    # FURTHEST INSERTION -- TBC
+    # 2-OPT -- TBC
+    # GREEDY INSERTION -- TBC
+
 # ALLOW THE USER to RANDOMIZE the DATASET -- DONE
 # ALLOW THE USER to change the NUMBER OF TRUCKS and PACKAGES -- DONE
 # (POTENTIALLY) USE AN ANIMATION as opposed to THE SLIDER
@@ -116,25 +121,21 @@ def nearest_insertion(index, visited):
     # Get the distances for the current index
     distances = dMatrix.iloc[index].values
 
-    # STEP TWO
-    if len(visited) == 0:
-        nearest_index = np.argmin(distances)
-        nearest_distance = distances[nearest_index]
-        if nearest_distance == float('inf'):
-            # If all distances are inf, return None
-            return None, float('inf')
+    # Initialize variables to find the nearest city
+    nearest_index = None
+    nearest_distance = float('inf')
 
-    # STEP THREE
+    # Iterate over all cities to find the nearest unvisited city
+    for i in range(len(distances)):
+        if i not in visited and distances[i] < nearest_distance:
+            nearest_index = i
+            nearest_distance = distances[i]
 
-    nearest_index = float('inf')
+    if nearest_distance == float('inf'):
+        # If all distances are inf, return None
+        return None, float('inf')
 
-    for v in visited:
-        distances = dMatrix.iloc[v].values
-        current_nearest = np.argmin(distances)
-        if current_nearest < nearest_index:
-            nearest_index = current_nearest
-
-    return nearest_index
+    return nearest_index, nearest_distance
 
 
 # Add an "algorithm" field to calculate route that decides which algorithm to run based on user selection
@@ -146,16 +147,13 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
     for truck in range(number_of_trucks):
         packages = 0
         current_index = 0  # Starting from the first coordinate -- the "hub"
-        i = 0
-        while len(visited) < len(coordinates) and i < number_of_iterations and packages < capacity:
-            if current_index in visited and current_index != 0:
-                break
-            i += 1
-            visited.add(current_index)
+        j = 0
+        # Initial route setup
+        route = [current_index]
+        while len(visited) < len(coordinates) and packages < capacity and j < number_of_iterations:
+            j += 1
             packages += locations[current_index, 2]
-
-            if selected_algorithm is 'nearest neighbor':
-                # Find the nearest neighbor for the current coordinate
+            if selected_algorithm == 'Nearest Neighbor':
                 next_index, distance = nearest_neighbor(current_index, visited)
                 if next_index is None:
                     break
@@ -163,20 +161,60 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                     # Find the next nearest neighbor that has not been visited
                     while next_index in visited:
                         next_index, distance = nearest_neighbor(next_index, visited)
+                route.append(next_index)
+                visited.add(next_index)
+                current_index = next_index
+            elif selected_algorithm == 'Nearest Insertion':
+                if len(route) == 1:
+                    # Start with the first insertion
+                    next_index, distance = nearest_insertion(current_index, visited)
+                    if next_index is None:
+                        break
+                    route.append(next_index)
+                    visited.add(next_index)
+                    current_index = next_index
+                else:
+                    best_insertion_index = None
+                    best_insertion_position = None
+                    best_insertion_distance = float('inf')
+
+                    for candidate in range(len(coordinates)):
+                        if candidate not in visited:
+                            # Calculate the best insertion point
+                            for i in range(len(route)):
+                                start = route[i]
+                                end = route[(i + 1) % len(route)]
+                                new_distance = dMatrix.iloc[start][candidate] + dMatrix.iloc[candidate][end] - \
+                                               dMatrix.iloc[start][end]
+                                if new_distance < best_insertion_distance:
+                                    best_insertion_index = candidate
+                                    best_insertion_position = i
+                                    best_insertion_distance = new_distance
+
+                    if best_insertion_index is None:
+                        break
+
+                    # Insert the city into the best position
+                    route.insert(best_insertion_position + 1, best_insertion_index)
+                    visited.add(best_insertion_index)
+                    current_index = best_insertion_index
 
             else:
-                next_index = nearest_insertion(current_index, visited)
-                distance = None
+                st.write("INVALID SELECTION")
+                break
             # Append the route
+        for i in range(len(route) - 1):
+            start_index = route[i]
+            end_index = route[i + 1]
+            distance = dMatrix.iloc[start_index][end_index]
             lines.loc[len(lines)] = {
-                'start_lat': coordinates[current_index][0],
-                'start_lon': coordinates[current_index][1],
-                'end_lat': coordinates[next_index][0],
-                'end_lon': coordinates[next_index][1],
+                'start_lat': coordinates[start_index][0],
+                'start_lon': coordinates[start_index][1],
+                'end_lat': coordinates[end_index][0],
+                'end_lon': coordinates[end_index][1],
                 'color': [250 - (truck * 50), 50 * truck, 25 * truck, 160],
                 'length': distance
             }
-            current_index = next_index  # Move to the next coordinate
 
     return lines
 
@@ -186,7 +224,7 @@ n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=l
 n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
 truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
 
-route_df = calculate_route(n_iterations, n_trucks, truck_capacity, None)
+route_df = calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
 
 # ADD constants. The 69 is latitude to miles. 1.30 is the difference between the shortest route to a straight line.
 # Include this source in blurb: https://blog.cdxtech.com/post/straight-line-distance-as-an-estimate-for-driving-routes
