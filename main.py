@@ -72,7 +72,8 @@ def generate_random_locations(num_rows, original_array):
     return random_locations
 
 
-algorithm = st.selectbox("Select an Algorithm", ("Nearest Neighbor", "Nearest Neighbor 2-opt", "Nearest Insertion"))
+algorithm = st.selectbox("Select an Algorithm", ("Nearest Neighbor", "Nearest Neighbor 2-opt",
+                                                 "Nearest Insertion", "Farthest Insertion"))
 
 if 'random_locations' not in st.session_state:
     st.session_state.random_locations = locations
@@ -122,6 +123,43 @@ def plot_nearest_neighbor(current_index, visited, route):
     visited.add(nearest_index)
     return nearest_index
 
+
+def two_opt(route):
+    def calculate_route_distance(route):
+        """Calculate the total distance of the given route based on the distance matrix."""
+        distance = 0
+        for i in range(len(route)):
+            distance += dMatrix.iloc[route[i]][route[(i + 1) % len(route)]]
+        return distance
+
+    def reverse_segment(route, i, j):
+        """Reverse the segment of the route from index i to index j."""
+        new_route = route[:]
+        new_route[i:j + 1] = reversed(new_route[i:j + 1])
+        return new_route
+
+    improved = True
+    while improved:
+        improved = False
+        best_distance = calculate_route_distance(route)
+        best_route = route[:]
+
+        for i in range(1, len(route) - 1):
+            for j in range(i + 1, len(route)):
+                if j - i == 1:  # Skip adjacent pairs
+                    continue
+
+                new_route = reverse_segment(route, i, j)
+                new_distance = calculate_route_distance(new_route)
+
+                if new_distance < best_distance:
+                    best_route = new_route[:]
+                    best_distance = new_distance
+                    improved = True
+
+        route = best_route
+
+    return route
 
 def plot_nearest_insertion(current_index, visited, route):
     if len(route) == 1:
@@ -175,47 +213,59 @@ def plot_nearest_insertion(current_index, visited, route):
 # Add an "algorithm" field to calculate route that decides which algorithm to run based on user selection
 # Probably a switch case statement for running the algorithms based on user selection
 
-
-def farthest_insertion(index, visited):
-    # Get the distances for the current index
-    distances = dMatrix.iloc[index].values
-
-    # Initialize variables to find the nearest city
-    nearest_index = None
-    nearest_distance = float('inf')
-
-    # Iterate over all cities to find the nearest unvisited city
-    for i in range(len(distances)):
-        if i not in visited and distances[i] < nearest_distance:
-            nearest_index = i
-            nearest_distance = distances[i]
-
-    if nearest_distance == float('inf'):
-        # If all distances are inf, return None
-        return None, float('inf')
-
-    return nearest_index, nearest_distance
-
+# TO DO:: EDIT THIS to begin with the two furthest cities. Chowabunga. Make it work. Balls.
 
 def plot_farthest_insertion(current_index, visited, route):
-    # Get the distances for the current index
-    distances = dMatrix.iloc[current_index].values
+    if len(route) == 1:
+        # Start with the first insertion
+        distances = dMatrix.iloc[current_index].values
 
-    # Initialize variables to find the nearest city
-    nearest_index = None
-    nearest_distance = float('inf')
+        # Initialize variables to find the nearest city
+        farthest_index = None
+        farthest_distance = 0
 
-    # Iterate over all cities to find the nearest unvisited city
-    for i in range(len(distances)):
-        if i not in visited and distances[i] < nearest_distance:
-            nearest_index = i
-            nearest_distance = distances[i]
+        # Iterate over all cities to find the furthest unvisited city
+        for i in range(len(distances)):
+            if i not in visited and distances[i] > farthest_distance:
+                farthest_index = i
+                farthest_distance = distances[i]
 
-    if nearest_distance == float('inf'):
-        # If all distances are inf, return None
-        return None, float('inf')
+        if farthest_distance == 0:
+            # If all distances are zero, return None
+            return None, 0
 
-    return nearest_index, nearest_distance
+        if farthest_distance is None:
+            return None
+
+        route.append(farthest_index)
+        visited.add(farthest_index)
+        return farthest_index
+    else:
+        best_insertion_index = None
+        best_insertion_position = None
+        best_insertion_distance = 0
+
+        for candidate in range(len(coordinates)):
+            if candidate not in visited:
+                # Calculate the best insertion point
+                for i in range(len(route)):
+                    start = route[i]
+                    end = route[(i + 1) % len(route)]
+                    new_distance = dMatrix.iloc[start][candidate] + dMatrix.iloc[candidate][end] - \
+                                   dMatrix.iloc[start][end]
+                    if new_distance > best_insertion_distance:
+                        best_insertion_index = candidate
+                        best_insertion_distance = new_distance
+                        best_insertion_position = i
+
+        if best_insertion_index is None:
+            return None
+
+        # Insert the city into the best position
+        route.insert(best_insertion_position + 1, best_insertion_index)
+        visited.add(best_insertion_index)
+
+        return best_insertion_index
 
 
 def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
@@ -239,10 +289,16 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                 current_index = plot_nearest_insertion(current_index, visited, route)
                 if current_index is None:
                     break
+            elif selected_algorithm == 'Farthest Insertion':
+                current_index = plot_farthest_insertion(current_index, visited, route)
+                if current_index is None:
+                    break
             else:
                 st.write("INVALID SELECTION")
                 break
-            # Append the route
+
+        route = two_opt(route)
+        # Append the route
         for i in range(len(route) - 1):
             start_index = route[i]
             end_index = route[i + 1]
