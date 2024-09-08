@@ -100,11 +100,11 @@ coordinates = random_locations[:, :2]
 dMatrix = pd.DataFrame(distance_matrix(coordinates, coordinates))
 
 
-def nearest_neighbor(index, visited):
+def plot_nearest_neighbor(current_index, visited, route):
     # Get the distances for the current index
-    distances = dMatrix.iloc[index].values
+    distances = dMatrix.iloc[current_index].values
     # Set the distance to self to infinity
-    distances[index] = float('inf')
+    distances[current_index] = float('inf')
     # Exclude already visited nodes by setting their distances to infinity
     for v in visited:
         distances[v] = float('inf')
@@ -114,10 +114,69 @@ def nearest_neighbor(index, visited):
     if nearest_distance == float('inf'):
         # If all distances are inf, return None
         return None, float('inf')
-    return nearest_index, nearest_distance
+    if nearest_index in visited:
+        # Find the next nearest neighbor that has not been visited
+        while nearest_index in visited:
+            next_index, distance = plot_nearest_neighbor(nearest_index, visited, route)
+    route.append(nearest_index)
+    visited.add(nearest_index)
+    return nearest_index
 
 
-def nearest_insertion(index, visited):
+def plot_nearest_insertion(current_index, visited, route):
+    if len(route) == 1:
+        # Start with the first insertion
+        distances = dMatrix.iloc[current_index].values
+
+        # Initialize variables to find the nearest city
+        nearest_index = None
+        nearest_distance = float('inf')
+
+        # Iterate over all cities to find the nearest unvisited city
+        for i in range(len(distances)):
+            if i not in visited and distances[i] < nearest_distance:
+                nearest_index = i
+                nearest_distance = distances[i]
+
+        if nearest_distance == float('inf'):
+            # If all distances are inf, return None
+            return None, float('inf')
+
+        if nearest_distance is None:
+            return None
+        route.append(nearest_index)
+        visited.add(nearest_index)
+        return nearest_index
+    else:
+        best_insertion_index = None
+        best_insertion_position = None
+        best_insertion_distance = float('inf')
+
+        for candidate in range(len(coordinates)):
+            if candidate not in visited:
+                # Calculate the best insertion point
+                for i in range(len(route)):
+                    start = route[i]
+                    end = route[(i + 1) % len(route)]
+                    new_distance = dMatrix.iloc[start][candidate] + dMatrix.iloc[candidate][end] - \
+                                   dMatrix.iloc[start][end]
+                    if new_distance < best_insertion_distance:
+                        best_insertion_index = candidate
+                        best_insertion_position = i
+                        best_insertion_distance = new_distance
+
+        if best_insertion_index is None:
+            return None
+
+        # Insert the city into the best position
+        route.insert(best_insertion_position + 1, best_insertion_index)
+        visited.add(best_insertion_index)
+        return best_insertion_index
+# Add an "algorithm" field to calculate route that decides which algorithm to run based on user selection
+# Probably a switch case statement for running the algorithms based on user selection
+
+
+def farthest_insertion(index, visited):
     # Get the distances for the current index
     distances = dMatrix.iloc[index].values
 
@@ -138,8 +197,27 @@ def nearest_insertion(index, visited):
     return nearest_index, nearest_distance
 
 
-# Add an "algorithm" field to calculate route that decides which algorithm to run based on user selection
-# Probably a switch case statement for running the algorithms based on user selection
+def plot_farthest_insertion(current_index, visited, route):
+    # Get the distances for the current index
+    distances = dMatrix.iloc[current_index].values
+
+    # Initialize variables to find the nearest city
+    nearest_index = None
+    nearest_distance = float('inf')
+
+    # Iterate over all cities to find the nearest unvisited city
+    for i in range(len(distances)):
+        if i not in visited and distances[i] < nearest_distance:
+            nearest_index = i
+            nearest_distance = distances[i]
+
+    if nearest_distance == float('inf'):
+        # If all distances are inf, return None
+        return None, float('inf')
+
+    return nearest_index, nearest_distance
+
+
 def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color", "length"])
     visited = set()
@@ -154,51 +232,13 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
             j += 1
             packages += locations[current_index, 2]
             if selected_algorithm == 'Nearest Neighbor':
-                next_index, distance = nearest_neighbor(current_index, visited)
-                if next_index is None:
+                current_index = plot_nearest_neighbor(current_index, visited, route)
+                if current_index is None:
                     break
-                if next_index in visited:
-                    # Find the next nearest neighbor that has not been visited
-                    while next_index in visited:
-                        next_index, distance = nearest_neighbor(next_index, visited)
-                route.append(next_index)
-                visited.add(next_index)
-                current_index = next_index
             elif selected_algorithm == 'Nearest Insertion':
-                if len(route) == 1:
-                    # Start with the first insertion
-                    next_index, distance = nearest_insertion(current_index, visited)
-                    if next_index is None:
-                        break
-                    route.append(next_index)
-                    visited.add(next_index)
-                    current_index = next_index
-                else:
-                    best_insertion_index = None
-                    best_insertion_position = None
-                    best_insertion_distance = float('inf')
-
-                    for candidate in range(len(coordinates)):
-                        if candidate not in visited:
-                            # Calculate the best insertion point
-                            for i in range(len(route)):
-                                start = route[i]
-                                end = route[(i + 1) % len(route)]
-                                new_distance = dMatrix.iloc[start][candidate] + dMatrix.iloc[candidate][end] - \
-                                               dMatrix.iloc[start][end]
-                                if new_distance < best_insertion_distance:
-                                    best_insertion_index = candidate
-                                    best_insertion_position = i
-                                    best_insertion_distance = new_distance
-
-                    if best_insertion_index is None:
-                        break
-
-                    # Insert the city into the best position
-                    route.insert(best_insertion_position + 1, best_insertion_index)
-                    visited.add(best_insertion_index)
-                    current_index = best_insertion_index
-
+                current_index = plot_nearest_insertion(current_index, visited, route)
+                if current_index is None:
+                    break
             else:
                 st.write("INVALID SELECTION")
                 break
