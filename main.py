@@ -6,19 +6,14 @@ import pydeck as pdk
 from scipy.spatial import distance_matrix
 
 # TO DO:
-# Add the PACKAGES and TRUCKS feature -- DONE
-# WRITE A BLURB explaining the dataset, scenario, and how the dataset can be visualized
-# ADD INTERACTIVE ELEMENTS such that the user can see the difference between the 2-opt, greedy, nearest insertion, ect.
-# https://stemlounge.com/animated-algorithms-for-the-traveling-salesman-problem/
-    # NEAREST INSERTION -- DONE
-    # FURTHEST INSERTION -- TBC
-    # 2-OPT -- TBC
-    # GREEDY INSERTION -- TBC
+# Add 2 more data visualizations. IDEAS:
+#   Distance traveled by each truck
+#   TIME when all deliveries are completed
+#   Potentially allow the user to save the state of their settings, and use that as a data point?
+#   I like that idea but it sounds like too much work :/
+#   Potentially something related to packages? Like packages that each truck carried or something
+#   -- Pretty sure I'll do this one
 
-# ALLOW THE USER to RANDOMIZE the DATASET -- DONE
-# ALLOW THE USER to change the NUMBER OF TRUCKS and PACKAGES -- DONE
-# (POTENTIALLY) USE AN ANIMATION as opposed to THE SLIDER
-# WRITE OR INCORPORATE IT THIS INTO ROUTING FUNCTION -- WE NEED TO MEASURE THE DISTANCE OF THE ROUTE (IMPORTANT)
 
 #                      Latitude    Longitude   Number of Packages
 locations = np.array([[40.684770, -111.871110, 1],
@@ -104,23 +99,30 @@ dMatrix = pd.DataFrame(distance_matrix(coordinates, coordinates))
 def plot_nearest_neighbor(current_index, visited, route):
     # Get the distances for the current index
     distances = dMatrix.iloc[current_index].values
+    temporary_distance = np.copy(distances)  # Create a deep copy of distances
+
     # Set the distance to self to infinity
     distances[current_index] = float('inf')
+
     # Exclude already visited nodes by setting their distances to infinity
     for v in visited:
         distances[v] = float('inf')
+
     # Get the index of the nearest neighbor
     nearest_index = np.argmin(distances)
     nearest_distance = distances[nearest_index]
+
     if nearest_distance == float('inf'):
         # If all distances are inf, return None
-        return None, float('inf')
-    if nearest_index in visited:
-        # Find the next nearest neighbor that has not been visited
-        while nearest_index in visited:
-            next_index, distance = plot_nearest_neighbor(nearest_index, visited, route)
+        return None
+
+    # Update route and visited set
     route.append(nearest_index)
     visited.add(nearest_index)
+
+    # Reset distances to its original values
+    distances[:] = temporary_distance  # Use slicing to update in-place
+
     return nearest_index
 
 
@@ -183,6 +185,7 @@ def plot_nearest_insertion(current_index, visited, route):
         if nearest_distance is None:
             return None
         route.append(nearest_index)
+        route.append(0)  # Append the hub
         visited.add(nearest_index)
         return nearest_index
     else:
@@ -238,24 +241,30 @@ def plot_farthest_insertion(current_index, visited, route):
             return None
 
         route.append(farthest_index)
+        route.append(0) # Append the hub
         visited.add(farthest_index)
         return farthest_index
     else:
+        distances = dMatrix.iloc[current_index].values
+
         best_insertion_index = None
         best_insertion_position = None
         best_insertion_distance = 0
 
         for candidate in range(len(coordinates)):
             if candidate not in visited:
-                # Calculate the best insertion point
+                # Calculate the best insertion position
+                if candidate not in visited and distances[candidate] > best_insertion_distance:
+                    best_insertion_index = candidate
+                best_distance = float('inf')
+                #Calculate the best insertion point
                 for i in range(len(route)):
                     start = route[i]
                     end = route[(i + 1) % len(route)]
                     new_distance = dMatrix.iloc[start][candidate] + dMatrix.iloc[candidate][end] - \
                                    dMatrix.iloc[start][end]
-                    if new_distance > best_insertion_distance:
-                        best_insertion_index = candidate
-                        best_insertion_distance = new_distance
+                    if new_distance < best_distance:
+                        best_distance = new_distance
                         best_insertion_position = i
 
         if best_insertion_index is None:
@@ -283,6 +292,15 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
             packages += locations[current_index, 2]
             if selected_algorithm == 'Nearest Neighbor':
                 current_index = plot_nearest_neighbor(current_index, visited, route)
+                if j == number_of_iterations:
+                    route.append(0) # Append the hub
+                if current_index is None:
+                    break
+            elif selected_algorithm == 'Nearest Neighbor 2-opt':
+                current_index = plot_nearest_neighbor(current_index, visited, route)
+                if j == number_of_iterations:
+                    route = two_opt(route)
+                    route.append(0)  # Append the hub
                 if current_index is None:
                     break
             elif selected_algorithm == 'Nearest Insertion':
@@ -297,7 +315,6 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                 st.write("INVALID SELECTION")
                 break
 
-        route = two_opt(route)
         # Append the route
         for i in range(len(route) - 1):
             start_index = route[i]
@@ -315,7 +332,7 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
     return lines
 
 
-n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=len(coordinates) - 1, value=0,
+n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=len(coordinates), value=0,
                          help="How many iterations of your current algorithm")
 n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
 truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
