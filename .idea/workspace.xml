@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="311d2601-062d-4360-be1d-b35c4487623f" name="Changes" comment="Got the map &quot;working&quot;">
+    <list default="true" id="311d2601-062d-4360-be1d-b35c4487623f" name="Changes" comment="Got furthest insertion fully wokring!!">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -44,17 +44,47 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;advanced.settings&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\dano3\PycharmProjects\pythonProject" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pythonProject" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="--no-cov" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -88,12 +118,107 @@
       <option name="project" value="LOCAL" />
       <updated>1725446518000</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Got the lines working! Big!">
+      <option name="closed" value="true" />
+      <created>1725571777845</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1725571777845</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Got the trucks and packages feature working. Huge!">
+      <option name="closed" value="true" />
+      <created>1725673776062</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1725673776062</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Manages to make the &quot;randomize the dataset&quot; button work!">
+      <option name="closed" value="true" />
+      <created>1725701920248</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1725701920248</updated>
+    </task>
+    <task id="LOCAL-00006" summary="starting work on nearest insertion">
+      <option name="closed" value="true" />
+      <created>1725722063265</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1725722063265</updated>
+    </task>
+    <task id="LOCAL-00007" summary="starting work on nearest insertion">
+      <option name="closed" value="true" />
+      <created>1725723902859</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1725723902859</updated>
+    </task>
+    <task id="LOCAL-00008" summary="starting work on nearest insertion">
+      <option name="closed" value="true" />
+      <created>1725723976613</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1725723976613</updated>
+    </task>
+    <task id="LOCAL-00009" summary="got nearest insertion mostly working">
+      <option name="closed" value="true" />
+      <created>1725754461984</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1725754461984</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Cleaned up code an begun work on farthest insertion">
+      <option name="closed" value="true" />
+      <created>1725766028927</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1725766028927</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Got furthest insertion half-working">
+      <option name="closed" value="true" />
+      <created>1725768766953</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1725768766953</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Got furthest insertion fully wokring!!">
+      <option name="closed" value="true" />
+      <created>1725911255757</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1725911255757</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value=":D" />
     <MESSAGE value="Got the map &quot;working&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="Got the map &quot;working&quot;" />
+    <MESSAGE value="Got the lines working! Big!" />
+    <MESSAGE value="Got the trucks and packages feature working. Huge!" />
+    <MESSAGE value="Manages to make the &quot;randomize the dataset&quot; button work!" />
+    <MESSAGE value="starting work on nearest insertion" />
+    <MESSAGE value="got nearest insertion mostly working" />
+    <MESSAGE value="Cleaned up code an begun work on farthest insertion" />
+    <MESSAGE value="Got furthest insertion half-working" />
+    <MESSAGE value="Got furthest insertion fully wokring!!" />
+    <option name="LAST_COMMIT_MESSAGE" value="Got furthest insertion fully wokring!!" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints-defaults>
+        <breakpoint type="python-line" />
+      </breakpoints-defaults>
+    </breakpoint-manager>
   </component>
 </project>

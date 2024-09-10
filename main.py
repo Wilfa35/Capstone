@@ -173,7 +173,7 @@ def plot_nearest_insertion(current_index, visited, route):
         nearest_distance = float('inf')
 
         # Iterate over all cities to find the nearest unvisited city
-        for i in range(len(distances)):
+        for i in range(len(coordinates)):
             if i not in visited and distances[i] < nearest_distance:
                 nearest_index = i
                 nearest_distance = distances[i]
@@ -277,6 +277,11 @@ def plot_farthest_insertion(current_index, visited, route):
         return best_insertion_index
 
 
+truck_route_length = []
+truck_delivery_count = []
+truck_index = []
+
+
 def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color", "length"])
     visited = set()
@@ -292,13 +297,13 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
             packages += locations[current_index, 2]
             if selected_algorithm == 'Nearest Neighbor':
                 current_index = plot_nearest_neighbor(current_index, visited, route)
-                if j == number_of_iterations:
+                if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
                     route.append(0) # Append the hub
                 if current_index is None:
                     break
             elif selected_algorithm == 'Nearest Neighbor 2-opt':
                 current_index = plot_nearest_neighbor(current_index, visited, route)
-                if j == number_of_iterations:
+                if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
                     route = two_opt(route)
                     route.append(0)  # Append the hub
                 if current_index is None:
@@ -315,11 +320,14 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                 st.write("INVALID SELECTION")
                 break
 
+        route_distance = 0
+
         # Append the route
         for i in range(len(route) - 1):
             start_index = route[i]
             end_index = route[i + 1]
             distance = dMatrix.iloc[start_index][end_index]
+            route_distance += distance
             lines.loc[len(lines)] = {
                 'start_lat': coordinates[start_index][0],
                 'start_lon': coordinates[start_index][1],
@@ -329,6 +337,9 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                 'length': distance
             }
 
+        truck_route_length.append(route_distance * 69 * 1.30)
+        truck_delivery_count.append(packages)
+        truck_index.append(f'truck {truck + 1}')
     return lines
 
 
@@ -374,3 +385,7 @@ st.pydeck_chart(
         ],
     )
 )
+
+truck_df = pd.DataFrame({"Packages Delivered": truck_delivery_count, "Distance Travelled": truck_route_length, "Index": truck_index})
+
+st.bar_chart(truck_df, x="Index", y=["Distance Travelled", "Packages Delivered"], x_label="", y_label="", horizontal=True, stack=False)
