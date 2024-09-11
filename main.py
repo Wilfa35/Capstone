@@ -285,15 +285,17 @@ truck_index = []
 def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color", "length"])
     visited = set()
+    visited.add(0)
     i = 0
 
     while True:
         terminate_early = False
+        pos = 0
 
         for truck in range(number_of_trucks):
             packages = 0
             current_index = 0  # Starting from the first coordinate -- the "hub"
-            j = i
+            j = 0
             # Initial route setup
             route = [current_index]
             while len(visited) < len(coordinates) and packages < capacity and j < number_of_iterations:
@@ -327,9 +329,9 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
             route_distance = 0
 
             # Append the route
-            for i in range(len(route) - 1):
-                start_index = route[i]
-                end_index = route[i + 1]
+            for k in range(len(route) - 1):
+                start_index = route[k]
+                end_index = route[k + 1]
                 distance = dMatrix.iloc[start_index][end_index]
                 route_distance += distance
                 lines.loc[len(lines)] = {
@@ -345,20 +347,24 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
             truck_delivery_count.append(packages)
             truck_index.append(f'truck {truck + 1}')
 
-            i = j
-
             if j == number_of_iterations:
                 terminate_early = True
+
+            pos += 1
+
+            if pos == number_of_trucks:
+                i = j
+
         if len(visited) == len(coordinates) or terminate_early:
             break
 
     return lines
 
 
-n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=len(coordinates), value=0,
-                         help="How many iterations of your current algorithm")
 n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
 truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
+n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=int(len(coordinates) / n_trucks), value=0,
+                         help="How many iterations of your current algorithm")
 
 route_df = calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
 
