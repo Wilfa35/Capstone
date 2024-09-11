@@ -4,6 +4,7 @@ import numpy as np
 import streamlit as st
 import pydeck as pdk
 from scipy.spatial import distance_matrix
+from timeit import timeit
 
 # TO DO:
 # Add 2 more data visualizations. IDEAS:
@@ -73,9 +74,12 @@ algorithm = st.selectbox("Select an Algorithm", ("Nearest Neighbor", "Nearest Ne
 if 'random_locations' not in st.session_state:
     st.session_state.random_locations = locations
 
+random_dataset_size = st.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=20,
+                                help="How many locations would you like in your randomized dataset?")
+
 # Button to randomize dataset
 if st.button("Randomize Dataset"):
-    st.session_state.random_locations = generate_random_locations(20, locations)
+    st.session_state.random_locations = generate_random_locations(random_dataset_size, locations)
 
 # Access the randomized locations from session state
 random_locations = st.session_state.random_locations
@@ -287,20 +291,23 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
     visited = set()
     visited.add(0)
     i = 0
+    furthest_insertion = 0
 
     while True:
         terminate_early = False
         pos = 0
 
+        #Write a "last_iteration" for EACH truck, so every truck can keep up
+
         for truck in range(number_of_trucks):
             packages = 0
             current_index = 0  # Starting from the first coordinate -- the "hub"
-            j = 0
+            j = i
             # Initial route setup
             route = [current_index]
             while len(visited) < len(coordinates) and packages < capacity and j < number_of_iterations:
                 j += 1
-                packages += locations[current_index, 2]
+                packages += random_locations[current_index, 2]
                 if selected_algorithm == 'Nearest Neighbor':
                     current_index = plot_nearest_neighbor(current_index, visited, route)
                     if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
@@ -352,8 +359,11 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
 
             pos += 1
 
+            if furthest_insertion < j:
+                furthest_insertion = j
+
             if pos == number_of_trucks:
-                i = j
+                i = furthest_insertion
 
         if len(visited) == len(coordinates) or terminate_early:
             break
@@ -363,7 +373,7 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
 
 n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
 truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
-n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=int(len(coordinates) / n_trucks), value=0,
+n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=-(-len(coordinates) // n_trucks), value=0,
                          help="How many iterations of your current algorithm")
 
 route_df = calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
@@ -371,6 +381,17 @@ route_df = calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
 # ADD constants. The 69 is latitude to miles. 1.30 is the difference between the shortest route to a straight line.
 # Include this source in blurb: https://blog.cdxtech.com/post/straight-line-distance-as-an-estimate-for-driving-routes
 st.write(route_df['length'].sum() * 69 * 1.30)
+
+
+def wrapper():
+    calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
+
+
+# Measure the time
+elapsed_time = timeit(wrapper, number=1)
+
+# Display the time in Streamlit
+st.write(f"Elapsed time: {elapsed_time:.6f} seconds")
 
 st.pydeck_chart(
     pdk.Deck(
