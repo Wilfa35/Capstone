@@ -16,7 +16,7 @@ from scipy.spatial import distance_matrix
 
 
 #                      Latitude    Longitude   Number of Packages
-locations = np.array([[40.684770, -111.871110, 1],
+locations = np.array([[40.684770, -111.871110, 0],
                       [40.745930, -111.938160, 2],
                       [40.725330, -111.852966, 3],
                       [40.664470, -111.933160, 1],
@@ -285,61 +285,73 @@ truck_index = []
 def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color", "length"])
     visited = set()
+    i = 0
 
-    for truck in range(number_of_trucks):
-        packages = 0
-        current_index = 0  # Starting from the first coordinate -- the "hub"
-        j = 0
-        # Initial route setup
-        route = [current_index]
-        while len(visited) < len(coordinates) and packages < capacity and j < number_of_iterations:
-            j += 1
-            packages += locations[current_index, 2]
-            if selected_algorithm == 'Nearest Neighbor':
-                current_index = plot_nearest_neighbor(current_index, visited, route)
-                if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
-                    route.append(0) # Append the hub
-                if current_index is None:
-                    break
-            elif selected_algorithm == 'Nearest Neighbor 2-opt':
-                current_index = plot_nearest_neighbor(current_index, visited, route)
-                if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
-                    route = two_opt(route)
-                    route.append(0)  # Append the hub
-                if current_index is None:
-                    break
-            elif selected_algorithm == 'Nearest Insertion':
-                current_index = plot_nearest_insertion(current_index, visited, route)
-                if current_index is None:
-                    break
-            elif selected_algorithm == 'Farthest Insertion':
-                current_index = plot_farthest_insertion(current_index, visited, route)
-                if current_index is None:
-                    break
-            else:
-                st.write("INVALID SELECTION")
-                break
+    while True:
+        terminate_early = False
 
-        route_distance = 0
+        for truck in range(number_of_trucks):
+            packages = 0
+            current_index = 0  # Starting from the first coordinate -- the "hub"
+            j = i
+            # Initial route setup
+            route = [current_index]
+            while len(visited) < len(coordinates) and packages < capacity and j < number_of_iterations:
+                j += 1
+                packages += locations[current_index, 2]
+                if selected_algorithm == 'Nearest Neighbor':
+                    current_index = plot_nearest_neighbor(current_index, visited, route)
+                    if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
+                        route.append(0) # Append the hub
+                    if current_index is None:
+                        break
+                elif selected_algorithm == 'Nearest Neighbor 2-opt':
+                    current_index = plot_nearest_neighbor(current_index, visited, route)
+                    if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
+                        route = two_opt(route)
+                        route.append(0)  # Append the hub
+                    if current_index is None:
+                        break
+                elif selected_algorithm == 'Nearest Insertion':
+                    current_index = plot_nearest_insertion(current_index, visited, route)
+                    if current_index is None:
+                        break
+                elif selected_algorithm == 'Farthest Insertion':
+                    current_index = plot_farthest_insertion(current_index, visited, route)
+                    if current_index is None:
+                        break
+                else:
+                    st.write("INVALID SELECTION")
+                    break
 
-        # Append the route
-        for i in range(len(route) - 1):
-            start_index = route[i]
-            end_index = route[i + 1]
-            distance = dMatrix.iloc[start_index][end_index]
-            route_distance += distance
-            lines.loc[len(lines)] = {
-                'start_lat': coordinates[start_index][0],
-                'start_lon': coordinates[start_index][1],
-                'end_lat': coordinates[end_index][0],
-                'end_lon': coordinates[end_index][1],
-                'color': [250 - (truck * 50), 50 * truck, 25 * truck, 160],
-                'length': distance
-            }
+            route_distance = 0
 
-        truck_route_length.append(route_distance * 69 * 1.30)
-        truck_delivery_count.append(packages)
-        truck_index.append(f'truck {truck + 1}')
+            # Append the route
+            for i in range(len(route) - 1):
+                start_index = route[i]
+                end_index = route[i + 1]
+                distance = dMatrix.iloc[start_index][end_index]
+                route_distance += distance
+                lines.loc[len(lines)] = {
+                    'start_lat': coordinates[start_index][0],
+                    'start_lon': coordinates[start_index][1],
+                    'end_lat': coordinates[end_index][0],
+                    'end_lon': coordinates[end_index][1],
+                    'color': [250 - (truck * 50), 50 * truck, 25 * truck, 160],
+                    'length': distance
+                }
+
+            truck_route_length.append(route_distance * 69 * 1.30)
+            truck_delivery_count.append(packages)
+            truck_index.append(f'truck {truck + 1}')
+
+            i = j
+
+            if j == number_of_iterations:
+                terminate_early = True
+        if len(visited) == len(coordinates) or terminate_early:
+            break
+
     return lines
 
 
