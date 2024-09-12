@@ -74,7 +74,7 @@ algorithm = st.selectbox("Select an Algorithm", ("Nearest Neighbor", "Nearest Ne
 if 'random_locations' not in st.session_state:
     st.session_state.random_locations = locations
 
-random_dataset_size = st.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=20,
+random_dataset_size = st.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=27,
                                 help="How many locations would you like in your randomized dataset?")
 
 # Button to randomize dataset
@@ -407,7 +407,7 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
 
 
 n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
-truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
+truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=30, help="How many trucks")
 n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=-(-len(coordinates) // n_trucks), value=0,
                          help="How many iterations of your current algorithm")
 
@@ -482,7 +482,7 @@ total_values = subset_df.sum()
 summary_stats = subset_df.describe()
 
 
-st.table(truck_df)
+st.table(subset_df)
 
 requested_query = st.selectbox("What would you like to Query?", ("Averages", "Minimums", "Maximums", "Totals"))
 
@@ -494,5 +494,23 @@ if requested_query == "Maximums":
     st.table(max_values)
 if requested_query == "Totals":
     st.table(total_values)
+
+temp_df = pd.DataFrame({
+    "Averages": average_values,
+    "Minimums": min_values,
+    "Maximums": max_values,
+    "Totals": total_values,
+    "Algorithm": algorithm,
+    "Number of Trucks": n_trucks,
+    "Iterations": n_iterations,
+    "Capacity": truck_capacity
+})
+
+if 'saved_df' not in st.session_state:
+    st.session_state.saved_df = pd.DataFrame(columns=["Averages", "Minimums", "Maximums", "Totals", "Algorithm", "Number of Trucks", "Iterations", "Capacity"])
+
+# Button to save dataset
 if st.button("Save Dataset"):
-    pass
+    # Concatenate and update session state
+    st.session_state.saved_df = pd.concat([st.session_state.saved_df, temp_df], ignore_index=True)
+
