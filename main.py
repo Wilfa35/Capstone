@@ -281,9 +281,8 @@ def plot_farthest_insertion(current_index, visited, route):
         return best_insertion_index
 
 
-truck_route_length = []
-truck_delivery_count = []
-truck_index = []
+truck_df = pd.DataFrame(columns=["Packages Delivered", "Distance Traversed", "Time Elapsed", "Wages Paid",
+                                 "MPG", "Gallons of Gas Expended", "Average Speed"])
 
 
 def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
@@ -293,66 +292,102 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
     i = 0
     furthest_insertion = 0
 
+    def append_route_to_lines(route, truck):
+        nonlocal lines
+        route_distance = 0
+        for k in range(len(route) - 1):
+            start_index = route[k]
+            end_index = route[k + 1]
+            distance = dMatrix.iloc[start_index][end_index]
+            route_distance += distance
+            lines.loc[len(lines)] = {
+                'start_lat': coordinates[start_index][0],
+                'start_lon': coordinates[start_index][1],
+                'end_lat': coordinates[end_index][0],
+                'end_lon': coordinates[end_index][1],
+                'color': [250 - (truck * 50), 50 * truck, 25 * truck, 160],
+                'length': distance
+            }
+
+        # I still don't know why I have to divide the end result by 2, but it doesn't work without this
+
+        return route_distance / 2
+
+    def execute_algorithm(current_index, route, truck):
+        nonlocal visited
+        nonlocal selected_algorithm
+
+        if selected_algorithm == 'Nearest Neighbor':
+            return plot_nearest_neighbor(current_index, visited, route)
+        elif selected_algorithm == 'Nearest Neighbor 2-opt':
+            current_index = plot_nearest_neighbor(current_index, visited, route)
+            route = two_opt(route)
+            return route, current_index
+        elif selected_algorithm == 'Nearest Insertion':
+            return plot_nearest_insertion(current_index, visited, route)
+        elif selected_algorithm == 'Farthest Insertion':
+            return plot_farthest_insertion(current_index, visited, route)
+        else:
+            st.write("INVALID SELECTION")
+            return None
+
     while True:
         terminate_early = False
         pos = 0
 
-        #Write a "last_iteration" for EACH truck, so every truck can keep up
-
         for truck in range(number_of_trucks):
             packages = 0
-            current_index = 0  # Starting from the first coordinate -- the "hub"
+            current_index = 0
             j = i
-            # Initial route setup
             route = [current_index]
+
             while len(visited) < len(coordinates) and packages < capacity and j < number_of_iterations:
                 j += 1
-                packages += random_locations[current_index, 2]
-                if selected_algorithm == 'Nearest Neighbor':
-                    current_index = plot_nearest_neighbor(current_index, visited, route)
-                    if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
-                        route.append(0) # Append the hub
-                    if current_index is None:
-                        break
-                elif selected_algorithm == 'Nearest Neighbor 2-opt':
-                    current_index = plot_nearest_neighbor(current_index, visited, route)
-                    if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
-                        route = two_opt(route)
-                        route.append(0)  # Append the hub
-                    if current_index is None:
-                        break
-                elif selected_algorithm == 'Nearest Insertion':
-                    current_index = plot_nearest_insertion(current_index, visited, route)
-                    if current_index is None:
-                        break
-                elif selected_algorithm == 'Farthest Insertion':
-                    current_index = plot_farthest_insertion(current_index, visited, route)
-                    if current_index is None:
-                        break
+                result = execute_algorithm(current_index, route, truck)
+                if isinstance(result, tuple):  # For algorithms that return both route and index
+                    route, current_index = result
                 else:
-                    st.write("INVALID SELECTION")
+                    current_index = result
+                packages += random_locations[current_index, 2]
+                if j >= number_of_iterations or packages >= capacity or len(visited) >= len(coordinates):
+                    route.append(0)
+                    break
+                if current_index is None:
                     break
 
-            route_distance = 0
+            route_distance = append_route_to_lines(route, truck)
 
-            # Append the route
-            for k in range(len(route) - 1):
-                start_index = route[k]
-                end_index = route[k + 1]
-                distance = dMatrix.iloc[start_index][end_index]
-                route_distance += distance
-                lines.loc[len(lines)] = {
-                    'start_lat': coordinates[start_index][0],
-                    'start_lon': coordinates[start_index][1],
-                    'end_lat': coordinates[end_index][0],
-                    'end_lon': coordinates[end_index][1],
-                    'color': [250 - (truck * 50), 50 * truck, 25 * truck, 160],
-                    'length': distance
-                }
+            truck_index = f'truck {truck + 1}'
 
-            truck_route_length.append(route_distance * 69 * 1.30)
-            truck_delivery_count.append(packages)
-            truck_index.append(f'truck {truck + 1}')
+            global truck_df
+
+            if truck_index not in truck_df.index:
+                # Create the DataFrame for the new truck
+                temp_truck_df = pd.DataFrame({
+                    "Packages Delivered": packages / 2,
+                    "Distance Traversed": route_distance * 69 * 1.30,
+                    "Time Elapsed": "",
+                    "Wages Paid": "",
+                    "MPG": 10,
+                    "Gallons of Gas Expended": None,
+                    "Average Speed": 13.6},
+                    index=[truck_index])
+
+                # Perform calculations
+                temp_truck_df["Time Elapsed"] = temp_truck_df["Distance Traversed"] / temp_truck_df["Average Speed"]
+                temp_truck_df["Wages Paid"] = temp_truck_df["Time Elapsed"] * 18.76
+                temp_truck_df["Gallons of Gas Expended"] = temp_truck_df["Distance Traversed"] / temp_truck_df["MPG"]
+
+                # Concatenate the new data with the existing DataFrame
+                truck_df = pd.concat([truck_df, temp_truck_df])
+            else:
+                truck_df.loc[truck_index, "Packages Delivered"] += packages / 2
+                truck_df.loc[truck_index, "Distance Traversed"] += route_distance * 69 * 1.30
+                truck_df.loc[truck_index, "Time Elapsed"] = truck_df.loc[truck_index, "Distance Traversed"] / \
+                                                            truck_df.loc[truck_index, "Average Speed"]
+                truck_df.loc[truck_index, "Wages Paid"] = truck_df.loc[truck_index, "Time Elapsed"] * 18.76
+                truck_df.loc[truck_index, "Gallons of Gas Expended"] = truck_df.loc[truck_index, "Distance Traversed"] / \
+                                                                       truck_df.loc[truck_index, "MPG"]
 
             if j == number_of_iterations:
                 terminate_early = True
@@ -425,6 +460,6 @@ st.pydeck_chart(
     )
 )
 
-truck_df = pd.DataFrame({"Packages Delivered": truck_delivery_count, "Distance Travelled": truck_route_length, "Index": truck_index})
+# truck_df = pd.DataFrame({"Packages Delivered": truck_delivery_count, "Distance Travelled": truck_route_length, "Index": truck_index})
 
-st.bar_chart(truck_df, x="Index", y=["Distance Travelled", "Packages Delivered"], x_label="", y_label="", horizontal=True, stack=False)
+st.bar_chart(truck_df[["Packages Delivered", "Distance Traversed", "Time Elapsed", "Wages Paid", "Gallons of Gas Expended"]], horizontal=True, stack=False)
