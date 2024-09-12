@@ -281,7 +281,7 @@ def plot_farthest_insertion(current_index, visited, route):
         return best_insertion_index
 
 
-truck_df = pd.DataFrame(columns=["Packages Delivered", "Distance Traversed", "Time Elapsed", "Wages Paid",
+truck_df = pd.DataFrame(columns=["Packages Delivered", "Distance Traversed (Miles)", "Time Elapsed (Hours)", "Wages Paid",
                                  "MPG", "Gallons of Gas Expended", "Average Speed"])
 
 
@@ -365,8 +365,8 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                 # Create the DataFrame for the new truck
                 temp_truck_df = pd.DataFrame({
                     "Packages Delivered": packages / 2,
-                    "Distance Traversed": route_distance * 69 * 1.30,
-                    "Time Elapsed": "",
+                    "Distance Traversed (Miles)": route_distance * 69 * 1.30,
+                    "Time Elapsed (Hours)": "",
                     "Wages Paid": "",
                     "MPG": 10,
                     "Gallons of Gas Expended": None,
@@ -374,19 +374,19 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                     index=[truck_index])
 
                 # Perform calculations
-                temp_truck_df["Time Elapsed"] = temp_truck_df["Distance Traversed"] / temp_truck_df["Average Speed"]
-                temp_truck_df["Wages Paid"] = temp_truck_df["Time Elapsed"] * 18.76
-                temp_truck_df["Gallons of Gas Expended"] = temp_truck_df["Distance Traversed"] / temp_truck_df["MPG"]
+                temp_truck_df["Time Elapsed (Hours)"] = temp_truck_df["Distance Traversed (Miles)"] / temp_truck_df["Average Speed"]
+                temp_truck_df["Wages Paid"] = temp_truck_df["Time Elapsed (Hours)"] * 18.76
+                temp_truck_df["Gallons of Gas Expended"] = temp_truck_df["Distance Traversed (Miles)"] / temp_truck_df["MPG"]
 
                 # Concatenate the new data with the existing DataFrame
                 truck_df = pd.concat([truck_df, temp_truck_df])
             else:
                 truck_df.loc[truck_index, "Packages Delivered"] += packages / 2
-                truck_df.loc[truck_index, "Distance Traversed"] += route_distance * 69 * 1.30
-                truck_df.loc[truck_index, "Time Elapsed"] = truck_df.loc[truck_index, "Distance Traversed"] / \
+                truck_df.loc[truck_index, "Distance Traversed (Miles)"] += route_distance * 69 * 1.30
+                truck_df.loc[truck_index, "Time Elapsed (Hours)"] = truck_df.loc[truck_index, "Distance Traversed (Miles)"] / \
                                                             truck_df.loc[truck_index, "Average Speed"]
-                truck_df.loc[truck_index, "Wages Paid"] = truck_df.loc[truck_index, "Time Elapsed"] * 18.76
-                truck_df.loc[truck_index, "Gallons of Gas Expended"] = truck_df.loc[truck_index, "Distance Traversed"] / \
+                truck_df.loc[truck_index, "Wages Paid"] = truck_df.loc[truck_index, "Time Elapsed (Hours)"] * 18.76
+                truck_df.loc[truck_index, "Gallons of Gas Expended"] = truck_df.loc[truck_index, "Distance Traversed (Miles)"] / \
                                                                        truck_df.loc[truck_index, "MPG"]
 
             if j == number_of_iterations:
@@ -462,4 +462,37 @@ st.pydeck_chart(
 
 # truck_df = pd.DataFrame({"Packages Delivered": truck_delivery_count, "Distance Travelled": truck_route_length, "Index": truck_index})
 
-st.bar_chart(truck_df[["Packages Delivered", "Distance Traversed", "Time Elapsed", "Wages Paid", "Gallons of Gas Expended"]], horizontal=True, stack=False)
+options = st.multiselect(
+    "What would you like to Display?",
+    ["Packages Delivered", "Distance Traversed (Miles)", "Time Elapsed (Hours)", "Wages Paid", "Gallons of Gas Expended"],
+    ["Packages Delivered", "Distance Traversed (Miles)"],
+)
+
+st.bar_chart(truck_df[options], horizontal=True, stack=False)
+
+columns_of_interest = ["Packages Delivered", "Distance Traversed (Miles)", "Time Elapsed (Hours)", "Wages Paid",
+                       "Gallons of Gas Expended"]
+subset_df = truck_df[columns_of_interest]
+
+# Now perform the operations on the subset DataFrame
+min_values = subset_df.min()
+max_values = subset_df.max()
+average_values = subset_df.mean()
+total_values = subset_df.sum()
+summary_stats = subset_df.describe()
+
+
+st.table(truck_df)
+
+requested_query = st.selectbox("What would you like to Query?", ("Averages", "Minimums", "Maximums", "Totals"))
+
+if requested_query == "Averages":
+    st.table(average_values)
+if requested_query == "Minimums":
+    st.table(min_values)
+if requested_query == "Maximums":
+    st.table(max_values)
+if requested_query == "Totals":
+    st.table(total_values)
+if st.button("Save Dataset"):
+    pass
