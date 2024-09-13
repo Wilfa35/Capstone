@@ -6,6 +6,8 @@ import pydeck as pdk
 from scipy.spatial import distance_matrix
 from timeit import timeit
 
+MILES_CONVERSION = 69 * 1.30
+
 # TO DO:
 # Add 2 more data visualizations. IDEAS:
 #   Distance traveled by each truck
@@ -68,18 +70,13 @@ def generate_random_locations(num_rows, original_array):
     return random_locations
 
 
-algorithm = st.selectbox("Select an Algorithm", ("Nearest Neighbor", "Nearest Neighbor 2-opt",
-                                                 "Nearest Insertion", "Farthest Insertion"))
+algorithm = st.sidebar.selectbox("Select an Algorithm", ("Nearest Neighbor", "Nearest Neighbor 2-opt", "Nearest Insertion", "Farthest Insertion"))
 
 if 'random_locations' not in st.session_state:
     st.session_state.random_locations = locations
 
-random_dataset_size = st.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=20,
-                                help="How many locations would you like in your randomized dataset?")
-
-# Button to randomize dataset
-if st.button("Randomize Dataset"):
-    st.session_state.random_locations = generate_random_locations(random_dataset_size, locations)
+# Layout setup
+st.title("Truck Routing Optimization")
 
 # Access the randomized locations from session state
 random_locations = st.session_state.random_locations
@@ -167,6 +164,7 @@ def two_opt(route):
 
     return route
 
+
 def plot_nearest_insertion(current_index, visited, route):
     if len(route) == 1:
         # Start with the first insertion
@@ -217,10 +215,7 @@ def plot_nearest_insertion(current_index, visited, route):
         route.insert(best_insertion_position + 1, best_insertion_index)
         visited.add(best_insertion_index)
         return best_insertion_index
-# Add an "algorithm" field to calculate route that decides which algorithm to run based on user selection
-# Probably a switch case statement for running the algorithms based on user selection
 
-# TO DO:: EDIT THIS to begin with the two furthest cities. Chowabunga. Make it work. Balls.
 
 def plot_farthest_insertion(current_index, visited, route):
     if len(route) == 1:
@@ -285,7 +280,7 @@ truck_df = pd.DataFrame(columns=["Packages Delivered", "Distance Traversed (Mile
                                  "MPG", "Gallons of Gas Expended", "Average Speed"])
 
 
-def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm):
+def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_algorithm, colors):
     lines = pd.DataFrame(columns=["start_lat", "start_lon", "end_lat", "end_lon", "color", "length"])
     visited = set()
     visited.add(0)
@@ -295,6 +290,7 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
     def append_route_to_lines(route, truck):
         nonlocal lines
         route_distance = 0
+
         for k in range(len(route) - 1):
             start_index = route[k]
             end_index = route[k + 1]
@@ -305,7 +301,7 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
                 'start_lon': coordinates[start_index][1],
                 'end_lat': coordinates[end_index][0],
                 'end_lon': coordinates[end_index][1],
-                'color': [250 - (truck * 50), 50 * truck, 25 * truck, 160],
+                'color': truck_colors.get(truck),
                 'length': distance
             }
 
@@ -406,30 +402,58 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
     return lines
 
 
-n_trucks = st.slider("Number of Trucks", min_value=1, max_value=5, value=1, help="How many trucks")
-truck_capacity = st.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20, help="How many trucks")
-n_iterations = st.slider("Nearest Neighbor Iterations", min_value=0, max_value=-(-len(coordinates) // n_trucks), value=0,
-                         help="How many iterations of your current algorithm")
+st.sidebar.header("Settings")
+n_trucks = st.sidebar.slider("Number of Trucks", min_value=1, max_value=5, value=1)
+truck_capacity = st.sidebar.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20)
+n_iterations = st.sidebar.slider("Nearest Neighbor Iterations", min_value=0, max_value=-(-len(locations) // n_trucks), value=0)
+random_dataset_size = st.sidebar.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=20)
 
-route_df = calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
+if st.sidebar.button("Randomize Dataset"):
+    st.session_state.random_locations = generate_random_locations(random_dataset_size, locations)
+    random_locations = st.session_state.random_locations
+    df = pd.DataFrame(
+        {
+            "lat": random_locations[:, 0],
+            "lon": random_locations[:, 1],
+            "num_packages": random_locations[:, 2],
+            "radius": 100 + (random_locations[:, 2] * 25),
+            "col4": "#f00",
+        }
+    )
 
-# ADD constants. The 69 is latitude to miles. 1.30 is the difference between the shortest route to a straight line.
-# Include this source in blurb: https://blog.cdxtech.com/post/straight-line-distance-as-an-estimate-for-driving-routes
-st.write(route_df['length'].sum() * 69 * 1.30)
+truck_colors = {
+    0: (31, 119, 180, 255),  # Truck 1 - Blue
+    1: (255, 127, 14, 255),  # Truck 2 - Orange
+    2: (44, 160, 44, 255),   # Truck 3 - Green
+    3: (214, 39, 40, 255),   # Truck 4 - Red
+    4: (148, 103, 189, 255), # Truck 5 - Purple
+}
+
+truck_colors_html = {
+    0: '#1f77b4',  # Truck 1 - Blue
+    1: '#ff7f0e',  # Truck 2 - Orange
+    2: '#2ca02c',  # Truck 3 - Green
+    3: '#d62728',  # Truck 4 - Red
+    4: '#9467bd',  # Truck 5 - Purple
+}
+
+route_df = calculate_route(n_iterations, n_trucks, truck_capacity, algorithm, truck_colors)
+total_distance = route_df['length'].sum() * MILES_CONVERSION
 
 
 def wrapper():
-    calculate_route(n_iterations, n_trucks, truck_capacity, algorithm)
+    calculate_route(n_iterations, n_trucks, truck_capacity, algorithm, truck_colors)
 
 
 # Measure the time
 elapsed_time = timeit(wrapper, number=1)
 
 # Display the time in Streamlit
-st.write(f"Elapsed time: {elapsed_time:.6f} seconds")
+st.header("Route Analysis")
+col1, col2 = st.columns([3, 1])
 
-st.pydeck_chart(
-    pdk.Deck(
+with col1:
+    st.pydeck_chart(pdk.Deck(
         map_style=None,
         initial_view_state=pdk.ViewState(
             latitude=40.705,
@@ -457,11 +481,23 @@ st.pydeck_chart(
                 pickable=False,
             ),
         ],
-    )
-)
+    ))
 
-# truck_df = pd.DataFrame({"Packages Delivered": truck_delivery_count, "Distance Travelled": truck_route_length, "Index": truck_index})
+with col2:
+    st.write(f"**Total Distance Traveled:** {total_distance:.2f} miles")
+    for i in range(n_trucks):
+        st.markdown(
+            f"""
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <div style="width: 20px; height: 20px; background-color: {truck_colors_html[i]}; border: 1px solid #000; margin-right: 10px;"></div>
+                    <div>Truck {i + 1}</div>
+                </div>
+            """,
+            unsafe_allow_html=True
+        )
 
+
+st.header("Truck Data")
 options = st.multiselect(
     "What would you like to Display?",
     ["Packages Delivered", "Distance Traversed (Miles)", "Time Elapsed (Hours)", "Wages Paid", "Gallons of Gas Expended"],
@@ -470,29 +506,27 @@ options = st.multiselect(
 
 st.bar_chart(truck_df[options], horizontal=True, stack=False)
 
-columns_of_interest = ["Packages Delivered", "Distance Traversed (Miles)", "Time Elapsed (Hours)", "Wages Paid",
-                       "Gallons of Gas Expended"]
+columns_of_interest = ["Packages Delivered", "Distance Traversed (Miles)", "Time Elapsed (Hours)", "Wages Paid", "Gallons of Gas Expended"]
 subset_df = truck_df[columns_of_interest]
 
-# Now perform the operations on the subset DataFrame
 min_values = subset_df.min()
 max_values = subset_df.max()
 average_values = subset_df.mean()
 total_values = subset_df.sum()
-summary_stats = subset_df.describe()
 
 
-st.table(truck_df)
-
+st.header("Summary Statistics")
 requested_query = st.selectbox("What would you like to Query?", ("Averages", "Minimums", "Maximums", "Totals"))
 
 if requested_query == "Averages":
     st.table(average_values)
-if requested_query == "Minimums":
+elif requested_query == "Minimums":
     st.table(min_values)
-if requested_query == "Maximums":
+elif requested_query == "Maximums":
     st.table(max_values)
-if requested_query == "Totals":
+elif requested_query == "Totals":
     st.table(total_values)
-if st.button("Save Dataset"):
-    pass
+
+# Measure the time
+elapsed_time = timeit(lambda: calculate_route(n_iterations, n_trucks, truck_capacity, algorithm, truck_colors), number=1)
+st.write(f"**Elapsed time:** {elapsed_time:.6f} seconds")
