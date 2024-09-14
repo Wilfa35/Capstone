@@ -1,21 +1,11 @@
 import pandas as pd
 import numpy as np
-# import matplotlib.pyplot as plt
 import streamlit as st
 import pydeck as pdk
 from scipy.spatial import distance_matrix
 from timeit import timeit
 
 MILES_CONVERSION = 69 * 1.30
-
-# TO DO:
-# Add 2 more data visualizations. IDEAS:
-#   Distance traveled by each truck
-#   TIME when all deliveries are completed
-#   Potentially allow the user to save the state of their settings, and use that as a data point?
-#   I like that idea but it sounds like too much work :/
-#   Potentially something related to packages? Like packages that each truck carried or something
-#   -- Pretty sure I'll do this one
 
 
 #                      Latitude    Longitude   Number of Packages
@@ -66,7 +56,6 @@ def generate_random_locations(num_rows, original_array):
     # Combine into a single array
     random_locations = np.column_stack((random_latitudes, random_longitudes, random_packages))
 
-    print(random_locations)
     return random_locations
 
 
