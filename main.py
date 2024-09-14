@@ -392,10 +392,18 @@ def calculate_route(number_of_iterations, number_of_trucks, capacity, selected_a
 
 
 st.sidebar.header("Settings")
-n_trucks = st.sidebar.slider("Number of Trucks", min_value=1, max_value=5, value=1)
-truck_capacity = st.sidebar.slider("Number of Packages per Truck", min_value=5, max_value=100, value=20)
-n_iterations = st.sidebar.slider("Nearest Neighbor Iterations", min_value=0, max_value=-(-len(locations) // n_trucks), value=0)
-random_dataset_size = st.sidebar.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=20)
+n_trucks = st.sidebar.slider("Number of Trucks", min_value=1, max_value=5, value=1,
+                             help="This is where you select how many trucks are concurrently delivering packages."
+                                  "Typically, more trucks will mean the routes are less efficient, but they complete "
+                                  "sooner.")
+truck_capacity = st.sidebar.slider("Number of Packages per Truck", min_value=5, max_value=100, value=40,
+                                   help="This slider allows you to customize how many packages a single truck can"
+                                        "deliver before it must return to the hub and restock.")
+n_iterations = st.sidebar.slider("Algorithm Iterations", min_value=0, max_value=-(-len(locations) // n_trucks), value=1,
+                                 help="Here you can watch as the algorithm incorporates locations into its route.")
+random_dataset_size = st.sidebar.slider("Size of the Randomized Dataset", min_value=10, max_value=100, value=30,
+                                        help="Here you can select the number of locations in the randomized dataset."
+                                             "Higher values may lead to sluggish performance")
 
 if st.sidebar.button("Randomize Dataset"):
     st.session_state.random_locations = generate_random_locations(random_dataset_size, locations)
